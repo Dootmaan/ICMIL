@@ -1,5 +1,7 @@
 # Code for *Iteratively Coupled Multiple Instance Learning from Instance to Bag Classifier for Whole Slide Image Classification*
 
+*Some Spoiler about Our Future Works*: We are currently working on an improved embedder finetuning method based on ICMIL, which is even more effective and elegant. Please follow this repo for any future updates.
+
 ## 1. Brief Introduction and Prerequisites
 
 In this preview version of ICMIL code, sensitive information and code comments has been removed to keep our submission anonymous. Some modifications (e.g., path to dataset, path to pretrained weights) to the code by yourself is necessary for running ICMIL correctly.
