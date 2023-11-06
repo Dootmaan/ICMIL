@@ -1,6 +1,6 @@
 # Code for *Iteratively Coupled Multiple Instance Learning from Instance to Bag Classifier for Whole Slide Image Classification*
 
-*We have released an improved embedder finetuning method based on ICMIL, which is even more effective and elegant. Switch to the other branch to use the new confidence-based embedder finetuning method.*
+*We have released an improved embedder finetuning method based on ICMIL, which is even more effective and elegant. Switch to [the other branch](https://github.com/Dootmaan/ICMIL/tree/confidence_based) to use the new confidence-based embedder finetuning method.*
 
 ## 1. Brief Introduction and Prerequisites
 
