@@ -1,6 +1,6 @@
 # Code for *Iteratively Coupled Multiple Instance Learning from Instance to Bag Classifier for Whole Slide Image Classification*
 
-*Some Spoiler about Our Future Works*: We are currently working on an improved embedder finetuning method based on ICMIL, which is even more effective and elegant. Please follow this repo for any future updates.
+*We have released an improved embedder finetuning method based on ICMIL, which is even more effective and elegant. Switch to the other branch to use the new confidence-based embedder finetuning method.*
 
 ## 1. Brief Introduction and Prerequisites
 
@@ -52,7 +52,3 @@ The max supplementary material file size limit is 100Mb as is shown in CMT. Ther
 - DTFD_after_ICMIL_model_best.pth (24.8Mb): This is the DTFD-MIL weights after ICMIL, which achieves a 93.7% AUC/87.0% F1/90.6% Acc on Camelyon16 after one ICMIL iteration.
 
 These pretrained weights can be found in ./utils/ with the corresponding filenames. It should be noted that these MIL weights should also be used with the corresponding instance embeddings by ICMIL.
-
----
-
-**This preliminary version of code is only for verifying the correctness of our proposed method and contains no LICENSE file in order to stay anonymous. Please do not redistribute the code to any other platform or use it for any other purpose. We will update this project with better readability upon paper acceptance with a proper LICENSE.*
