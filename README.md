@@ -1,6 +1,6 @@
-# Code for *Iteratively Coupled Multiple Instance Learning from Instance to Bag Classifier for Whole Slide Image Classification*
+# Code for *Rethinking multiple instance learning for whole slide image classification: a bag-level classifier is a good instance-level teacher*
 
-*We have released an improved embedder finetuning method based on ICMIL, which is even more effective and elegant. Switch to the other branch to use the new confidence-based embedder finetuning method.*
+*This branch holds the confidence-based embedder finetuning method for ICMIL, which is even more effective and elegant.*
 
 ## 1. Brief Introduction and Prerequisites
 
@@ -19,6 +19,9 @@ Some required libraries:
 - scikit-learn
 - numpy
 - opencv
+
+  > In this branch, both aggregators and classifiers in DTFD-MIL are used to generate a more accurate attention score in Embedder Phase. BETA is set to 2 for this method. You can find the new weights in ./utils for verification or further finetuning. If you need the weights for other MIL backbones or you want the ICMIL finetuned ResNet50, please contact me through email.
+  >
 
 ## 2. Prepare your dataset
 
