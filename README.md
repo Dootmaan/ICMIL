@@ -45,6 +45,10 @@ The saved log files or weights during ICMIL training can be found directly in th
 
 ## 4. Some pretrained weights
 
+```
+Sorry for our previous mistake. These weights were supposed to be directly uploaded to this repo but I forgot they were masked in my .gitignore file. After the 2023/11/16 commit everything should be in the place.
+```
+
 The max supplementary material file size limit is 100Mb as is shown in CMT. Therefore, we carefully selected the following weights for your evaluation. Also, the full pretrained weights (including the full MIL weights and the corresponding ResNet50 weights after ICMIL) will be open along with the code upon paper acceptance.
 
 - MaxPool_after_ICMIL_model_best.pth (16.8Mb): This is the Max Pool weights after ICMIL, which achieves a 85.2% AUC on Camelyon16 after one ICMIL iteration.
