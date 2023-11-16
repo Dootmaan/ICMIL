@@ -48,4 +48,8 @@ The saved log files or weights during ICMIL training can be found directly in th
 
 ## 4. Some pretrained weights
 
+```
+Sorry for our previous mistake. These weights were supposed to be directly uploaded to this repo but I forgot they were masked in my .gitignore file. After the 2023/11/16 commit everything should be in place.
+```
+
 The pretrained weights of DTFD-MIL can be found in ./utils/DTFD_axgated_psemix_model_best_BETA2.pth. There is also a new WSI visualization file in this folder which might help.
