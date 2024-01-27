@@ -164,9 +164,9 @@ for ii in range(params.EPOCH):
         slide_pseudo_feat = torch.cat(slide_pseudo_feat, dim=0)
         slide_sub_preds = torch.cat(slide_sub_preds, dim=0) ### numGroup x fs
         slide_sub_labels = torch.cat(slide_sub_labels, dim=0) ### numGroup
-        loss0 = ce_cri(slide_sub_preds, slide_sub_labels).mean()
+        loss_1 = ce_cri(slide_sub_preds, slide_sub_labels).mean()
         optimizer0.zero_grad()
-        loss0.backward(retain_graph=True)
+        loss_1.backward(retain_graph=True)
         torch.nn.utils.clip_grad_norm_(dimReduction.parameters(), params.grad_clipping)
         torch.nn.utils.clip_grad_norm_(attention.parameters(), params.grad_clipping)
         torch.nn.utils.clip_grad_norm_(classifier.parameters(), params.grad_clipping)
@@ -181,7 +181,7 @@ for ii in range(params.EPOCH):
         optimizer1.step()
 
         if i%10==0:
-            print('[EPOCH{}:ITER{}] loss0:{}; loss1:{}'.format(ii,i,loss0.item(),loss1.item()))
+            print('[EPOCH{}:ITER{}] loss_1:{}; loss1:{}'.format(ii,i,loss_1.item(),loss1.item()))
     
     auc,acc,f1=TestModel(valloader)
     if auc>best_auc:

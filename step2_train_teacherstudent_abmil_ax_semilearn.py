@@ -10,7 +10,6 @@ from dataset.RandomPatchDistillationDataset import RandomPatchDistillationDatase
 # torch.autograd.set_detect_anomaly(True)
 from sklearn.metrics import roc_auc_score
 import numpy as np
-from utils import eval_metric
 import torch.nn.functional as F
 
 parser = argparse.ArgumentParser(description='abc')
@@ -109,10 +108,10 @@ valloader=torch.utils.data.DataLoader(valset, batch_size=100, shuffle=True, drop
 # trainable_parameters += list(attention.parameters())
 # trainable_parameters += list(dimReduction.parameters())
 
-optimizer0 = torch.optim.Adam(list(model_student.parameters())+list(dimReduction_student.parameters())+list(classifier_student.parameters()), lr=params.lr,  weight_decay=params.weight_decay)
+optimizer2 = torch.optim.Adam(list(model_student.parameters())+list(dimReduction_student.parameters())+list(classifier_student.parameters()), lr=params.lr,  weight_decay=params.weight_decay)
 # optimizer1 = torch.optim.Adam(list(dimReduction_teacher.parameters())+list(classifier_teacher.parameters()), lr=params.lr,  weight_decay=params.weight_decay)
 
-scheduler0 = torch.optim.lr_scheduler.MultiStepLR(optimizer0, [100], gamma=params.lr_decay_ratio)
+scheduler2 = torch.optim.lr_scheduler.MultiStepLR(optimizer2, [100], gamma=params.lr_decay_ratio)
 # scheduler1 = torch.optim.lr_scheduler.MultiStepLR(optimizer1, [100], gamma=params.lr_decay_ratio)
 
 best_epoch = -1
@@ -164,7 +163,7 @@ best_mae=1
 # TestModel(testloader)
 for ii in range(params.EPOCH):
     model_student.train()
-    for param_group in optimizer0.param_groups:
+    for param_group in optimizer2.param_groups:
         curLR = param_group['lr']
         print('current learning rate {}'.format(curLR))
 
@@ -201,23 +200,23 @@ for ii in range(params.EPOCH):
         consistency_tmidFeat=dimReduction_student(inputs_tensor_teacher)
         consistency_tPredict=classifier_student(consistency_tmidFeat)
 
-        loss0 = ce_cri(F.log_softmax(tPredict_student,dim=-1), F.softmax(tPredict_teacher.detach(),dim=-1))
-        loss0 = torch.einsum('ns,n->ns', loss0, attention_score)
-        loss0 = loss0.mean()
-        loss1 = ce_cri(F.log_softmax(consistency_tPredict,dim=-1), F.softmax(tPredict_teacher,dim=-1)).mean()
-        loss2 = ce_cri(F.log_softmax(consistency_tmidFeat,dim=-1), F.softmax(tmidFeat_teacher,dim=-1)).mean()
-        loss=loss0+0.5*loss1+0.5*loss2
+        loss_c = ce_cri(F.log_softmax(tPredict_student,dim=-1), F.softmax(tPredict_teacher.detach(),dim=-1))
+        loss_c = torch.einsum('ns,n->ns', loss_c, attention_score)
+        loss_c = loss_c.mean()
+        loss_w1 = ce_cri(F.log_softmax(consistency_tPredict,dim=-1), F.softmax(tPredict_teacher,dim=-1)).mean()
+        loss_w2 = ce_cri(F.log_softmax(consistency_tmidFeat,dim=-1), F.softmax(tmidFeat_teacher,dim=-1)).mean()
+        loss_2=loss_c+0.5*loss_w1+0.5*loss_w2
 
-        optimizer0.zero_grad()
+        optimizer2.zero_grad()
         # optimizer1.zero_grad()
         # loss1.backward()
         # optimizer1.step()
 
-        loss.backward()
+        loss_2.backward()
         torch.nn.utils.clip_grad_norm_(dimReduction_student.parameters(), params.grad_clipping)
         # torch.nn.utils.clip_grad_norm_(attention_student.parameters(), params.grad_clipping)
         torch.nn.utils.clip_grad_norm_(classifier_student.parameters(), params.grad_clipping)
-        optimizer0.step()
+        optimizer2.step()
 
         ## optimization for the second tier
         # gSlidePred = attCls(slide_pseudo_feat)
@@ -228,7 +227,7 @@ for ii in range(params.EPOCH):
         # optimizer1.step()
 
         if i%400==0:
-            print('[EPOCH{}:ITER{}] loss0:{}; '.format(ii,i,loss0.item()))
+            print('[EPOCH{}:ITER{}] loss_c:{}; '.format(ii,i,loss_c.item()))
         if i>100 and i%2500==0:
             # print('Testing:')
             # mae,acc=TestModel(valloader)
@@ -237,7 +236,7 @@ for ii in range(params.EPOCH):
             torch.save(model_student.state_dict(), str(i)+'iter_ResNet50_teacher_student_ax_gated_semilearn_best1024.pth')
             print('new best auc, weights saved. ')
     
-    scheduler0.step()
+    scheduler2.step()
     # scheduler1.step()
     print('End of epoch',ii)
     mae,acc=TestModel(valloader)

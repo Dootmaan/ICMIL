@@ -69,7 +69,7 @@ trainable_parameters += list(classifier.parameters())
 trainable_parameters += list(attention.parameters())
 trainable_parameters += list(dimReduction.parameters())
 
-optimizer0 = torch.optim.Adam(trainable_parameters, lr=params.lr,  weight_decay=params.weight_decay)
+optimizer1 = torch.optim.Adam(trainable_parameters, lr=params.lr,  weight_decay=params.weight_decay)
 
 best_auc = 0
 best_epoch = -1
@@ -122,7 +122,7 @@ TestModel(testloader)
 # raise Exception
 for ii in range(params.EPOCH):
 
-    for param_group in optimizer0.param_groups:
+    for param_group in optimizer1.param_groups:
         curLR = param_group['lr']
         print('current learning rate {}'.format(curLR))
 
@@ -140,16 +140,16 @@ for ii in range(params.EPOCH):
         tAA = attention(tmidFeat.t()).squeeze(0).t()
         
         tPredict = classifier(tAA)
-        loss0 = ce_cri(tPredict, labels).mean()
-        optimizer0.zero_grad()
-        loss0.backward()
+        loss_1 = ce_cri(tPredict, labels).mean()
+        optimizer1.zero_grad()
+        loss_1.backward()
         torch.nn.utils.clip_grad_norm_(dimReduction.parameters(), params.grad_clipping)
         torch.nn.utils.clip_grad_norm_(attention.parameters(), params.grad_clipping)
         torch.nn.utils.clip_grad_norm_(classifier.parameters(), params.grad_clipping)
-        optimizer0.step()
+        optimizer1.step()
 
         if i%10==0:
-            print('[EPOCH{}:ITER{}] loss0:{};'.format(ii,i,loss0.item()))
+            print('[EPOCH{}:ITER{}] loss_1:{};'.format(ii,i,loss_1.item()))
 
     auc,acc,f1=TestModel(valloader)
     if auc>best_auc:

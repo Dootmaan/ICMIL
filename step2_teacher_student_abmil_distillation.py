@@ -74,7 +74,7 @@ trainloader=torch.utils.data.DataLoader(trainset, batch_size=100, shuffle=True, 
 valloader=torch.utils.data.DataLoader(valset, batch_size=100, shuffle=True, drop_last=False)
 # testloader=torch.utils.data.DataLoader(testset, batch_size=100, shuffle=False, drop_last=False)
 
-optimizer0 = torch.optim.Adam(list(model_student.parameters())+list(dimReduction_student.parameters())+list(classifier_student.parameters()), lr=params.lr,  weight_decay=params.weight_decay)
+optimizer2 = torch.optim.Adam(list(model_student.parameters())+list(dimReduction_student.parameters())+list(classifier_student.parameters()), lr=params.lr,  weight_decay=params.weight_decay)
 
 best_epoch = -1
 test_auc = 0
@@ -113,7 +113,7 @@ def TestModel(test_loader):
 best_mae=1
 for ii in range(params.EPOCH):
     model_student.train()
-    for param_group in optimizer0.param_groups:
+    for param_group in optimizer2.param_groups:
         curLR = param_group['lr']
         print('current learning rate {}'.format(curLR))
 
@@ -133,20 +133,20 @@ for ii in range(params.EPOCH):
         consistency_tmidFeat=dimReduction_student(inputs_tensor_teacher)
         consistency_tPredict=classifier_student(consistency_tmidFeat)
 
-        loss0 = ce_cri(F.log_softmax(tPredict_student,dim=-1), F.softmax(tPredict_teacher.detach(),dim=-1)).mean()
-        loss1 = ce_cri(F.log_softmax(consistency_tPredict,dim=-1), F.softmax(tPredict_teacher,dim=-1)).mean()
-        loss2 = ce_cri(F.log_softmax(consistency_tmidFeat,dim=-1), F.softmax(tmidFeat_teacher,dim=-1)).mean()
-        loss=loss0+0.5*loss1+0.5*loss2
+        loss_c = ce_cri(F.log_softmax(tPredict_student,dim=-1), F.softmax(tPredict_teacher.detach(),dim=-1)).mean()
+        loss_w1 = ce_cri(F.log_softmax(consistency_tPredict,dim=-1), F.softmax(tPredict_teacher,dim=-1)).mean()
+        loss_w2 = ce_cri(F.log_softmax(consistency_tmidFeat,dim=-1), F.softmax(tmidFeat_teacher,dim=-1)).mean()
+        loss=loss_c+0.5*loss_w1+0.5*loss_w2
 
-        optimizer0.zero_grad()
+        optimizer2.zero_grad()
 
         loss.backward()
         torch.nn.utils.clip_grad_norm_(dimReduction_student.parameters(), params.grad_clipping)
         torch.nn.utils.clip_grad_norm_(classifier_student.parameters(), params.grad_clipping)
-        optimizer0.step()
+        optimizer2.step()
 
         if i%400==0:
-            print('[EPOCH{}:ITER{}] loss0:{}; '.format(ii,i,loss0.item()))
+            print('[EPOCH{}:ITER{}] loss_c:{}; '.format(ii,i,loss_c.item()))
         if i>100 and i%5000==0:
             # print('Testing:')
             # mae,acc=TestModel(valloader)
