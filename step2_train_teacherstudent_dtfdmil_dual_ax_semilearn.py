@@ -10,7 +10,6 @@ from dataset.RandomPatchDistillationDataset import RandomPatchDistillationDatase
 # torch.autograd.set_detect_anomaly(True)
 from sklearn.metrics import roc_auc_score
 import numpy as np
-from utils import eval_metric
 import torch.nn.functional as F
 
 parser = argparse.ArgumentParser(description='abc')

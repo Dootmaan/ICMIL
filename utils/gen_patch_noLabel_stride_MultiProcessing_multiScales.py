@@ -25,8 +25,6 @@ save_folder_dir = '/path/to/CAMELYON16/extracted_patches/training/tumor/'
 ####======================================
 
 
-
-
 #mask_level: 5, 1/32
 def get_roi_bounds(tslide, isDrawContoursOnImages=False, mask_level=5, cls_kernel=50, open_kernal=30):
 

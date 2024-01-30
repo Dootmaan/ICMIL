@@ -6,6 +6,7 @@ import torch
 from dataset.EmbededFeatsDataset import EmbededFeatsDataset
 from sklearn.metrics import roc_auc_score,f1_score,roc_curve
 import numpy as np
+from dataset.RandMixup import randmixup
 
 parser = argparse.ArgumentParser(description='abc')
 
@@ -57,7 +58,12 @@ trainset=EmbededFeatsDataset('/path/to/CAMELYON16/',mode='train',level=1)
 valset=EmbededFeatsDataset('/path/to/CAMELYON16/',mode='val',level=1)
 testset=EmbededFeatsDataset('/path/to/CAMELYON16/',mode='test',level=1)
 
-trainloader=torch.utils.data.DataLoader(trainset, batch_size=1, shuffle=True, drop_last=False)
+def collate_features(batch):
+    img = [torch.from_numpy(item[0]).to(params.device) for item in batch]
+    coords = [torch.tensor(item[1]).to(params.device) for item in batch]
+    return [img, coords]
+
+trainloader=torch.utils.data.DataLoader(trainset, batch_size=4, shuffle=True, drop_last=False, collate_fn=collate_features)
 valloader=torch.utils.data.DataLoader(valset, batch_size=1, shuffle=True, drop_last=False)
 testloader=torch.utils.data.DataLoader(testset, batch_size=1, shuffle=False, drop_last=False)
 
@@ -140,45 +146,96 @@ for ii in range(params.EPOCH):
     attention.train()
     attCls.train()
 
+    # for i, data in enumerate(trainloader):
+    #     inputs, labels=data
+    #     labels=labels.to(params.device)
+
+    #     slide_sub_preds=[]
+    #     slide_sub_labels=[]
+    #     slide_pseudo_feat=[]
+    #     inputs_pseudo_bags=torch.chunk(inputs.squeeze(0), params.numGroup,dim=0)
+
+    #     for subFeat_tensor in inputs_pseudo_bags:
+
+    #         slide_sub_labels.append(labels)
+    #         subFeat_tensor=subFeat_tensor.to(params.device)
+    #         tmidFeat = dimReduction(subFeat_tensor)
+    #         tAA = attention(tmidFeat).squeeze(0)
+    #         tattFeats = torch.einsum('ns,n->ns', tmidFeat, tAA)  ### n x fs
+    #         tattFeat_tensor = torch.sum(tattFeats, dim=0).unsqueeze(0)  ## 1 x fs
+    #         tPredict = classifier(tattFeat_tensor)  ### 1 x 2
+    #         slide_sub_preds.append(tPredict)
+    #         slide_pseudo_feat.append(tattFeat_tensor)
+
+    #     slide_pseudo_feat = torch.cat(slide_pseudo_feat, dim=0)
+    #     slide_sub_preds = torch.cat(slide_sub_preds, dim=0) ### numGroup x fs
+    #     slide_sub_labels = torch.cat(slide_sub_labels, dim=0) ### numGroup
+    #     loss_1 = ce_cri(slide_sub_preds, slide_sub_labels).mean()
+    #     optimizer0.zero_grad()
+    #     loss_1.backward(retain_graph=True)
+    #     torch.nn.utils.clip_grad_norm_(dimReduction.parameters(), params.grad_clipping)
+    #     torch.nn.utils.clip_grad_norm_(attention.parameters(), params.grad_clipping)
+    #     torch.nn.utils.clip_grad_norm_(classifier.parameters(), params.grad_clipping)
+    #     optimizer0.step()
+
+    #     ## optimization for the second tier
+    #     gSlidePred = attCls(slide_pseudo_feat)
+    #     loss1 = ce_cri(gSlidePred, labels).mean()
+    #     optimizer1.zero_grad()
+    #     loss1.backward()
+    #     torch.nn.utils.clip_grad_norm_(attCls.parameters(), params.grad_clipping)
+    #     optimizer1.step()
+
     for i, data in enumerate(trainloader):
         inputs, labels=data
-        labels=labels.to(params.device)
+        mix_inputs, labels_a, labels_b, lmbdas = randmixup(inputs,labels)
+        for j in range(len(mix_inputs)):
+            inputs=mix_inputs[j].unsqueeze(0)
+            label_a=labels_a[j].unsqueeze(0)
+            label_b=labels_b[j].unsqueeze(0)
+            lam=lmbdas[j]
 
-        slide_sub_preds=[]
-        slide_sub_labels=[]
-        slide_pseudo_feat=[]
-        inputs_pseudo_bags=torch.chunk(inputs.squeeze(0), params.numGroup,dim=0)
+            label_a=label_a.to(params.device)
+            label_b=label_b.to(params.device)
 
-        for subFeat_tensor in inputs_pseudo_bags:
+            slide_sub_preds=[]
+            slide_sub_labels_a=[]
+            slide_sub_labels_b=[]
+            slide_pseudo_feat=[]
+            inputs_pseudo_bags=torch.chunk(inputs.squeeze(0), params.numGroup,dim=0)
 
-            slide_sub_labels.append(labels)
-            subFeat_tensor=subFeat_tensor.to(params.device)
-            tmidFeat = dimReduction(subFeat_tensor)
-            tAA = attention(tmidFeat).squeeze(0)
-            tattFeats = torch.einsum('ns,n->ns', tmidFeat, tAA)  ### n x fs
-            tattFeat_tensor = torch.sum(tattFeats, dim=0).unsqueeze(0)  ## 1 x fs
-            tPredict = classifier(tattFeat_tensor)  ### 1 x 2
-            slide_sub_preds.append(tPredict)
-            slide_pseudo_feat.append(tattFeat_tensor)
+            for subFeat_tensor in inputs_pseudo_bags:
 
-        slide_pseudo_feat = torch.cat(slide_pseudo_feat, dim=0)
-        slide_sub_preds = torch.cat(slide_sub_preds, dim=0) ### numGroup x fs
-        slide_sub_labels = torch.cat(slide_sub_labels, dim=0) ### numGroup
-        loss_1 = ce_cri(slide_sub_preds, slide_sub_labels).mean()
-        optimizer0.zero_grad()
-        loss_1.backward(retain_graph=True)
-        torch.nn.utils.clip_grad_norm_(dimReduction.parameters(), params.grad_clipping)
-        torch.nn.utils.clip_grad_norm_(attention.parameters(), params.grad_clipping)
-        torch.nn.utils.clip_grad_norm_(classifier.parameters(), params.grad_clipping)
-        optimizer0.step()
+                slide_sub_labels_a.append(label_a)
+                slide_sub_labels_b.append(label_b)
+                subFeat_tensor=subFeat_tensor.to(params.device)
+                tmidFeat = dimReduction(subFeat_tensor)
+                tAA = attention(tmidFeat).squeeze(0)
+                tattFeats = torch.einsum('ns,n->ns', tmidFeat, tAA)  ### n x fs
+                tattFeat_tensor = torch.sum(tattFeats, dim=0).unsqueeze(0)  ## 1 x fs
+                tPredict = classifier(tattFeat_tensor)  ### 1 x 2
+                slide_sub_preds.append(tPredict)
+                slide_pseudo_feat.append(tattFeat_tensor)
+
+            slide_pseudo_feat = torch.cat(slide_pseudo_feat, dim=0)
+            slide_sub_preds = torch.cat(slide_sub_preds, dim=0) ### numGroup x fs
+            slide_sub_labels_a = torch.cat(slide_sub_labels_a, dim=0) ### numGroup
+            slide_sub_labels_b = torch.cat(slide_sub_labels_b, dim=0) ### numGroup
+            loss_1 = lam*ce_cri(slide_sub_preds, slide_sub_labels_a).mean()+(1-lam)*ce_cri(slide_sub_preds, slide_sub_labels_b).mean()
+            optimizer0.zero_grad()
+            loss_1.backward(retain_graph=True)
+            torch.nn.utils.clip_grad_norm_(dimReduction.parameters(), params.grad_clipping)
+            torch.nn.utils.clip_grad_norm_(attention.parameters(), params.grad_clipping)
+            torch.nn.utils.clip_grad_norm_(classifier.parameters(), params.grad_clipping)
+            optimizer0.step()
 
         ## optimization for the second tier
-        gSlidePred = attCls(slide_pseudo_feat)
-        loss1 = ce_cri(gSlidePred, labels).mean()
-        optimizer1.zero_grad()
-        loss1.backward()
-        torch.nn.utils.clip_grad_norm_(attCls.parameters(), params.grad_clipping)
-        optimizer1.step()
+            gSlidePred = attCls(slide_pseudo_feat)
+            loss1 = lam*ce_cri(gSlidePred, label_a).mean()+(1-lam)*ce_cri(gSlidePred, label_b).mean()
+            optimizer1.zero_grad()
+            loss1.backward()
+            torch.nn.utils.clip_grad_norm_(attCls.parameters(), params.grad_clipping)
+            optimizer1.step()
 
         if i%10==0:
             print('[EPOCH{}:ITER{}] loss_1:{}; loss1:{}'.format(ii,i,loss_1.item(),loss1.item()))

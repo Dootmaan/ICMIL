@@ -7,6 +7,7 @@ from dataset.EmbededFeatsDataset import EmbededFeatsDataset
 # torch.autograd.set_detect_anomaly(True)
 from sklearn.metrics import roc_auc_score,f1_score,roc_curve
 import numpy as np
+from dataset.RandMixup import randmixup
 
 parser = argparse.ArgumentParser(description='abc')
 
@@ -56,7 +57,12 @@ trainset=EmbededFeatsDataset('/your/path/to/CAMELYON16/',mode='train',level=1)
 valset=EmbededFeatsDataset('/your/path/to/CAMELYON16/',mode='val',level=1)
 testset=EmbededFeatsDataset('/your/path/to/CAMELYON16/',mode='test',level=1)
 
-trainloader=torch.utils.data.DataLoader(trainset, batch_size=1, shuffle=True, drop_last=False)
+def collate_features(batch):
+    img = [torch.from_numpy(item[0]).to(params.device) for item in batch]
+    coords = [torch.tensor(item[1]).to(params.device) for item in batch]
+    return [img, coords]
+
+trainloader=torch.utils.data.DataLoader(trainset, batch_size=1, shuffle=True, drop_last=False, collate_fn=collate_features)
 valloader=torch.utils.data.DataLoader(valset, batch_size=1, shuffle=True, drop_last=False)
 testloader=torch.utils.data.DataLoader(testset, batch_size=1, shuffle=False, drop_last=False)
 
@@ -132,21 +138,29 @@ for ii in range(params.EPOCH):
 
     for i, data in enumerate(trainloader):
         inputs, labels=data
-        labels=labels.to(params.device)
+        mix_inputs, labels_a, labels_b, lmbdas = randmixup(inputs,labels)
+        for j in range(len(mix_inputs)):
+            inputs_tensor=mix_inputs[j]
+            label_a=labels_a[j].unsqueeze(0)
+            label_b=labels_b[j].unsqueeze(0)
+            lam=lmbdas[j]
 
-        inputs_tensor=inputs.to(params.device)
+            label_a=label_a.to(params.device)
+            label_b=label_b.to(params.device)
 
-        tmidFeat = dimReduction(inputs_tensor).squeeze(0)
-        tAA = attention(tmidFeat.t()).squeeze(0).t()
-        
-        tPredict = classifier(tAA)
-        loss_1 = ce_cri(tPredict, labels).mean()
-        optimizer1.zero_grad()
-        loss_1.backward()
-        torch.nn.utils.clip_grad_norm_(dimReduction.parameters(), params.grad_clipping)
-        torch.nn.utils.clip_grad_norm_(attention.parameters(), params.grad_clipping)
-        torch.nn.utils.clip_grad_norm_(classifier.parameters(), params.grad_clipping)
-        optimizer1.step()
+            inputs_tensor=inputs.to(params.device)
+
+            tmidFeat = dimReduction(inputs_tensor).squeeze(0)
+            tAA = attention(tmidFeat.t()).squeeze(0).t()
+            
+            tPredict = classifier(tAA)
+            loss_1 = ce_cri(tPredict, labels).mean()
+            optimizer1.zero_grad()
+            loss_1.backward()
+            torch.nn.utils.clip_grad_norm_(dimReduction.parameters(), params.grad_clipping)
+            torch.nn.utils.clip_grad_norm_(attention.parameters(), params.grad_clipping)
+            torch.nn.utils.clip_grad_norm_(classifier.parameters(), params.grad_clipping)
+            optimizer1.step()
 
         if i%10==0:
             print('[EPOCH{}:ITER{}] loss_1:{};'.format(ii,i,loss_1.item()))
